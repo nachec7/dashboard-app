@@ -1,7 +1,11 @@
 import { component$ } from "@builder.io/qwik";
 
+interface HiArrowRightOutlineProps {
+    style?: string;
+}
 
-export const HiArrowRightOutline = component$(() => {
+export const HiArrowRightOutline = component$<HiArrowRightOutlineProps>(
+    ({ style="w-4 h-4" }) => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -9,7 +13,7 @@ export const HiArrowRightOutline = component$(() => {
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="size-6"
+            class={style}
         >
             <path
                 stroke-linecap="round"

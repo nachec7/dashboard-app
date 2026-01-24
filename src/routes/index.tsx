@@ -2,18 +2,21 @@ import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { HiArrowRightOutline } from "~/assets/svg/HiArrowRightOutline";
 import styles from "./home.module.css";
+import { LRDQwikLogo } from "~/assets/svg/LRDQwikLogo";
+import HeroImg from "~/assets/img/heroImg.png?jsx";
+import HeroMobileImg from "~/assets/img/heroMobileImg.png?jsx";
 
 export default component$(() => {
   return (
     <main class="flex min-h-screen flex-col p-6">
       <div class="flex h-20 shrink-0 items-end rounded-lg bg-blue-500 p-4 md:h-52">
-        {/* <LRDQwikLogo /> */}
+        <LRDQwikLogo />
       </div>
       <div class="mt-4 flex grow flex-col gap-4 md:flex-row">
         <div class="flex flex-col justify-center gap-6 rounded-lg bg-gray-50 px-6 py-10 md:w-2/5 md:px-20">
           <div class="h-0 w-0 border-b-30 border-l-20 border-r-20 border-b-blue-500 border-l-transparent border-r-transparent" />
           <div class={styles.shape} />
-          <p class="text-xl text-gray-800 md:text-3xl md:leading-normal">
+          <p class="lusitana text-xl text-gray-800 md:text-3xl md:leading-normal">
             <strong>Bienvenido a LRDQwik.</strong> Este es el ejemplo para el {""}
             <Link
               href="https://www.learn-qwik.com"
@@ -37,11 +40,12 @@ export default component$(() => {
             class="flex items-center gap-5 self-start rounded-lg bg-blue-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-400 md:text-balance"
           >
             <span>Iniciar Sesión</span>
-            <HiArrowRightOutline style="h-4 w-4" />
+            <HiArrowRightOutline />
           </Link>
         </div>
         <div class="flex items-center justify-center p-6 md:w-3/5 md:px-28 md:py-12">
-          {/* Agrega la imagen de hero aquí */}
+          <HeroImg class="hidden md:block" />
+          <HeroMobileImg class="block md:hidden" />
         </div>
       </div>
     </main>
