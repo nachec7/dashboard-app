@@ -7,18 +7,22 @@ import {
   date,
   text,
   timestamp,
+  pgEnum,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+
+export const userRoleEnum = pgEnum("user_role", ["admin", "user", "guest"]);
+export const invoiceStarusEnum = pgEnum('invoice_status', ["pending", "paid"]);
 
 export const usersTable = pgTable("users", {
   id: uuid("id")
-    .default(sql`uuid_generate_v4()`)
+    .defaultRandom()
     .primaryKey(),
   name: text("name").notNull(),
   birthday: date("birthday").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   phone_number: text("phone_number").notNull(),
+  role: userRoleEnum().default("user").notNull(),
   image_url: text("image_url"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
@@ -28,7 +32,7 @@ export type userInsert = typeof usersTable.$inferInsert;
 
 export const customersTable = pgTable("customers", {
   id: uuid("id")
-    .default(sql`uuid_generate_v4()`)
+    .defaultRandom()
     .primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
@@ -38,11 +42,11 @@ export type customerInsert = typeof customersTable.$inferInsert;
 
 export const invoicesTable = pgTable("invoices", {
   id: uuid("id")
-    .default(sql`uuid_generate_v4()`)
+    .defaultRandom()
     .primaryKey(),
   customer_id: uuid("customer_id").notNull(),
   amount: integer("amount").notNull(),
-  status: varchar("status", { length: 255 }).notNull(),
+  status: invoiceStarusEnum().default("pending").notNull(),
   date: date("date").notNull(),
 });
 export type invoiceInsert = typeof invoicesTable.$inferInsert;

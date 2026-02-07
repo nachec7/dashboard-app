@@ -1,38 +1,28 @@
-import "dotenv/config";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { sql } from "drizzle-orm";
+import { db } from "~/db";
 import {
-  invoices,
-  customers,
-  revenue,
-  users,
-} from "../src/lib/placeholder-data.js";
+  newInvoices,
+  newCustomers,
+  newRevenue,
+  newUsers,
+} from "~/lib/placeholder-data";
+import {
+  customersTable,
+  invoicesTable,
+  revenueTable,
+  usersTable,
+} from "~/db/schema";
+
 import { hash } from "bcrypt";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool);
-
-async function seedUsers(db) {
+async function seedUsers() {
   try {
-    // Insert data into the "users" table
-    const insertedUsers = await Promise.all(
-      users.map(async (user) => {
-        const hashedPassword = await hash(user.password, 10);
-        return db.execute(sql`
-        INSERT INTO users (id, name, email, birthday, password, phone_number)
-        VALUES (${user.id}, ${user.name}, ${user.email}, ${user.birthday}, ${hashedPassword}, ${user.phone_number})
-        ON CONFLICT (id) DO NOTHING;
-      `);
-      }),
-    );
+    for (const user of newUsers) {
+      const hashed = await hash(user.password, 10);
+      user.password = hashed;
+    }
 
-    console.log(`Seeded ${insertedUsers.length} users`);
-
-    return insertedUsers;
+    await db.insert(usersTable).values(newUsers);
+    console.log(`Seeded ${newUsers.length} users`);
   } catch (error) {
     console.error("Error seeding users:", error);
     throw error;
@@ -41,20 +31,8 @@ async function seedUsers(db) {
 
 async function seedInvoices(db) {
   try {
-    // Insert data into the "invoices" table
-    const insertedInvoices = await Promise.all(
-      invoices.map((invoice) =>
-        db.execute(sql`
-        INSERT INTO invoices (customer_id, amount, status, date)
-        VALUES (${invoice.customer_id}, ${invoice.amount}, ${invoice.status}, ${invoice.date})
-        ON CONFLICT (id) DO NOTHING;
-      `),
-      ),
-    );
-
-    console.log(`Seeded ${insertedInvoices.length} invoices`);
-
-    return insertedInvoices;
+    await db.insert(invoicesTable).values(newInvoices);
+    console.log(`Seeded ${newInvoices.length} invoices`);
   } catch (error) {
     console.error("Error seeding invoices:", error);
     throw error;
@@ -63,20 +41,8 @@ async function seedInvoices(db) {
 
 async function seedCustomers(db) {
   try {
-    // Insert data into the "customers" table
-    const insertedCustomers = await Promise.all(
-      customers.map((customer) =>
-        db.execute(sql`
-        INSERT INTO customers (id, name, email, image_url)
-        VALUES (${customer.id}, ${customer.name}, ${customer.email}, ${customer.image_url})
-        ON CONFLICT (id) DO NOTHING;
-      `),
-      ),
-    );
-
-    console.log(`Seeded ${insertedCustomers.length} customers`);
-
-    return insertedCustomers;
+    await db.insert(customersTable).values(newCustomers);
+    console.log(`Seeded ${newCustomers.length} customers`);
   } catch (error) {
     console.error("Error seeding customers:", error);
     throw error;
@@ -85,20 +51,8 @@ async function seedCustomers(db) {
 
 async function seedRevenue(db) {
   try {
-    // Insert data into the "revenue" table
-    const insertedRevenue = await Promise.all(
-      revenue.map((rev) =>
-        db.execute(sql`
-        INSERT INTO revenue (month, revenue)
-        VALUES (${rev.month}, ${rev.revenue})
-        ON CONFLICT (month) DO NOTHING;
-      `),
-      ),
-    );
-
-    console.log(`Seeded ${insertedRevenue.length} revenue`);
-
-    return insertedRevenue;
+    await db.insert(revenueTable).values(newRevenue);
+    console.log(`Seeded ${newRevenue.length} revenue`);
   } catch (error) {
     console.error("Error seeding revenue:", error);
     throw error;
@@ -106,7 +60,7 @@ async function seedRevenue(db) {
 }
 
 async function main() {
-  await seedUsers(db);
+ // await seedUsers(db);
   await seedCustomers(db);
   await seedInvoices(db);
   await seedRevenue(db);
