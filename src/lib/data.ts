@@ -1,49 +1,37 @@
-import "dotenv/config";
-import { drizzle } from "drizzle-orm/node-postgres"
-import { LatestInvoiceRaw, Revenue } from './definitions';
+// src/lib/data.ts
+
+import { db } from '~/db';
 import { formatCurrency } from './utils';
 import { server$ } from '@builder.io/qwik-city';
-
-const getPool = server$(function () {
-
-  const connectionString = this.env.get('POSTGRES_URL'); // Get the connection string from the environment variables
-  if(!connectionString) throw new Error('POSTGRES_URL environment variable is not set');
-
-  // Create a new pool with the connection string
-  const pool = createPool({
-    connectionString: connectionString,
-  });
-
-  if(!pool) throw new Error('Failed to create a new pool');
-
-  return pool;
-})
+import { revenueTable, invoicesTable, customersTable } from '~/db/schema';
+import { sql, count, desc, eq } from 'drizzle-orm';
 
 export const fetchRevenue = server$(async function () {
-  // Open a new connection
-  const pool = await getPool();
   try {
-    const { rows } = await pool.query<Revenue>('SELECT * FROM revenue');
+    const rows = await db.select().from(revenueTable);
     return rows;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data: ' + (error as Error).message);
-  } finally {
-    await pool.end(); // Ensure the connection is always closed
   }
 });
 
 export const fetchLatestInvoices = server$(async function () {
-  const pool = await  getPool();
   try {
-    const data = await pool.query<LatestInvoiceRaw>(`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`);
+    const data = await db
+      .select({
+        id: invoicesTable.id,
+        amount: invoicesTable.amount,
+        name: customersTable.name,
+        image_url: customersTable.image_url,
+        email: customersTable.email,
+      })
+      .from(invoicesTable)
+      .innerJoin(customersTable, eq(invoicesTable.customer_id, customersTable.id))
+      .orderBy(desc(invoicesTable.date))
+      .limit(5);
 
-    const latestInvoices = data.rows.map((invoice) => ({
+    const latestInvoices = data.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
@@ -51,34 +39,34 @@ export const fetchLatestInvoices = server$(async function () {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch the latest invoices.');
-  } finally {
-    await pool.end();
   }
 });
 
-export const fetchCardData = server$(async function () {  
-  const pool = await  getPool();
+export const fetchCardData = server$(async function () {
   try {
-    // You can probably combine these into a single pool.query query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = pool.query(`SELECT COUNT(*) FROM invoices`);
-    const customerCountPromise = pool.query(`SELECT COUNT(*) FROM customers`);
-    const invoiceStatusPromise = pool.query(`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`);
+    const invoiceCountPromise = db.select({ count: count() }).from(invoicesTable);
+    const customerCountPromise = db.select({ count: count() }).from(customersTable);
+    const invoiceStatusPromise = db
+      .select({
+        paid: sql`SUM(CASE WHEN ${invoicesTable.status} = 'paid' THEN ${invoicesTable.amount} ELSE 0 END)`.mapWith(
+          Number,
+        ),
+        pending: sql`SUM(CASE WHEN ${invoicesTable.status} = 'pending' THEN ${invoicesTable.amount} ELSE 0 END)`.mapWith(
+          Number,
+        ),
+      })
+      .from(invoicesTable);
 
-    const data = await Promise.all([
+    const [invoiceCount, customerCount, invoiceStatus] = await Promise.all([
       invoiceCountPromise,
       customerCountPromise,
       invoiceStatusPromise,
     ]);
 
-    const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
-    const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
+    const numberOfInvoices = Number(invoiceCount[0].count ?? '0');
+    const numberOfCustomers = Number(customerCount[0].count ?? '0');
+    const totalPaidInvoices = formatCurrency(invoiceStatus[0].paid ?? 0);
+    const totalPendingInvoices = formatCurrency(invoiceStatus[0].pending ?? 0);
 
     return {
       numberOfCustomers,
@@ -89,7 +77,5 @@ export const fetchCardData = server$(async function () {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
-  } finally {
-    await pool.end();
   }
 });
