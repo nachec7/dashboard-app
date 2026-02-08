@@ -1,15 +1,5 @@
 import { component$, Slot } from "@builder.io/qwik";
 import { SideNav } from "~/components/ui/dashboard/sidenav";
-import { routeLoader$ } from "@builder.io/qwik-city";
-import { fetchRevenue, fetchLatestInvoices, fetchCardData } from "~/lib/data";
-
-export const useFetchData = routeLoader$(async () => {
-  return {
-    revenue: await fetchRevenue(),
-    lastInvoices: await fetchLatestInvoices(),
-    cardData: await fetchCardData(),
-  };
-});
 
 export default component$(() => {
   return (
